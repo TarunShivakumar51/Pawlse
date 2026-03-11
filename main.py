@@ -3,6 +3,7 @@ import cv2 as cv
 import numpy as np
 import time
 import sys
+import matplotlib.pyplot as plt
 
 model = YOLO("best.pt")
 
@@ -12,7 +13,7 @@ name = "Webcam"
 locked_det_id = None
 collecting_data = False
 start_time = sys.maxsize
-green_channel = []
+green_channel_mean = []
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -25,7 +26,7 @@ while cap.isOpened():
     elif key == ord('u'):
         locked_det_id = None
         collecting_data = False
-        green_channel.clear()
+        green_channel_mean.clear()
         start_time = time.perf_counter()
 
     results = model.track(
@@ -79,7 +80,7 @@ while cap.isOpened():
         cv.putText(out, "TARGET LOST", (20, 40),
                    cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
         start_time = time.perf_counter()
-        green_channel.clear()
+        green_channel_mean.clear()
         collecting_data = False
     elif locked_det_id is not None and locked_det_id in ids_in_frame and not collecting_data:
         collecting_data = True
@@ -98,32 +99,31 @@ while cap.isOpened():
 
         seg_area_numpy = np.array(seg_area_cords, dtype=np.int32)
         
-        # TODO: Fix this shit retard
-        # if len(seg_area_cords) > 0:
-        #     seg_area_numpy = np.array(seg_area_cords, dtype=np.int32)
-        #     x, y, w, h = cv.boundingRect(seg_area_numpy)
-        #     shifted = seg_area_numpy - [x, y]
-        #     mask = np.zeros((h, w), dtype=np.uint8)
-        #     cv.fillPoly(mask, [shifted], 255)
-        #     crop = frame[y:y+h, x:x+w]
-        #     roi = cv.bitwise_and(crop, crop, mask=mask)
-
+        if len(seg_area_cords) > 0:
+            frame_array = np.zeros(frame.shape[:2], dtype=np.uint8)
+            frame_mask = cv.fillPoly(frame_array, seg_area_numpy, 255)
+            roi = cv.bitwise_and(frame, frame, mask=frame_mask)                    
+            
         if seg_area_cords is not None:
             segmented_array = cv.fillPoly(overlay, seg_area_numpy, color=green_fn)
             overlaid_img = cv.addWeighted(out, 0.7, segmented_array, 0.3, 0)
         else:
             overlaid_img = out
 
-        # blue, green, red = cv.split(roi)
-        # green_channel.append(green)    
+        blue, green, red = cv.split(roi)
+        green[green > 0]
+        green_array = np.array(green)
+        green_array_mean = np.mean(green_array)
+        green_channel_mean.append(green_array_mean)    
 
     cv.setWindowTitle(name, f"Webcam — LOCKED: {locked_det_id}" if locked_det_id else "Webcam")
     cv.imshow(name, overlaid_img)
-    # print(green_channel)
 
     if time.perf_counter() - start_time >= 15:
         break
 
 cap.release()
 cv.destroyAllWindows()
+
+
 
