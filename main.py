@@ -165,3 +165,5 @@ if __name__ == '__main__':
     green_channel_mean = np.array(green_channel_mean)
     cap.release()
     cv.destroyAllWindows()
+
+    bpm = calculate_bpm(green_channel_mean)
