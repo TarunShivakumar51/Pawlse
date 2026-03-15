@@ -166,4 +166,4 @@ if __name__ == '__main__':
     cap.release()
     cv.destroyAllWindows()
 
-    bpm = calculate_bpm(green_channel_mean)
+    bpm = calculate_bpm(green_channel_mean, cap.get(cv.CAP_PROP_FPS))
