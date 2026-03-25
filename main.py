@@ -5,9 +5,14 @@ import time
 import sys
 import matplotlib.pyplot as plt
 import calculate_bpm
+import os
+from pathlib import Path
 
 if __name__ == '__main__':
     model = YOLO("best.pt")
+
+    # Find a way to get the video path once video file is posted
+    video_path = Path(None)
 
     cap = cv.VideoCapture(0)
     name = "Webcam"
@@ -167,3 +172,6 @@ if __name__ == '__main__':
     cv.destroyAllWindows()
 
     bpm = calculate_bpm(green_channel_mean, cap.get(cv.CAP_PROP_FPS))
+
+    if video_path.exists():
+        os.remove(video_path)
