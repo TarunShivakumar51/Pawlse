@@ -1,9 +1,11 @@
 from fastapi import FastAPI, UploadFile, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
-import green_channel
+import green_channel_v2
 from pathlib import Path
 import os
+import tempfile
+import asyncio
 
 app = FastAPI()
 
@@ -13,20 +15,31 @@ app.add_middleware(CORSMiddleware,
                    allow_headers = ["*"]
                 )
 
+async def status_check(check_status, event):
+    while not event.is_set():
+        await asyncio.sleep(0.5)
+        if await check_status():
+            event.set()
+
+    return event    
+
 @app.post("/uploadfile")
 async def file_upload(file: UploadFile, request: Request):
-    with open(f"./{file.filename}", "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        video_path = Path(tmp.name)
 
-    video_path = Path(file.filename)
+    event = asyncio.Event()
+    waiter_task = asyncio.create_task(status_check(lambda: request.is_disconnected(), event)) 
 
     try:
-        bpm = green_channel.find_green_channel(video_path)
-
-        if request.is_disconnected():
-            return {"Disconnected" : "Client has been disconneted"}
-        
-        return {"Calculated BPM" : bpm}
+        bpm = await asyncio.to_thread(green_channel_v2.find_green_channel, video_path, event)
+        waiter_task.cancel()
+        return {"Calculated BPM": bpm}
+    
+    except Exception as err:
+        raise HTTPException(status_code=500, detail= str(err))
+    
     finally:
         if video_path.exists():
-            os.remove(video_path)  
+            os.remove(video_path)

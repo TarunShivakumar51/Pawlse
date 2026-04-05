@@ -2,8 +2,9 @@ from ultralytics import YOLO
 import cv2 as cv
 import numpy as np
 import calculate_bpm
+import asyncio
 
-def find_green_channel(video_path):
+def find_green_channel(video_path, event):
     model = YOLO("best.pt")
 
     cap = cv.VideoCapture(video_path)
@@ -12,7 +13,8 @@ def find_green_channel(video_path):
 
     while cap.isOpened():
         ret, frame = cap.read()
-        if not ret:
+        
+        if not ret or event.is_set():
             break
 
         results = model.track(
