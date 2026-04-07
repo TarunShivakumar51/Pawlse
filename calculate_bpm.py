@@ -1,7 +1,6 @@
 import numpy as np
 import scipy as sci
 from scipy.signal import butter, sosfiltfilt
-import matplotlib.pyplot as plt
 
 def bpm_calculation(green_channel, fps):
 
