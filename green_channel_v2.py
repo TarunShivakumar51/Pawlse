@@ -48,6 +48,4 @@ def find_green_channel(video_path, event):
 
     cap.release()
 
-    return bpm       
-
-           
+    return bpm             
